@@ -1,0 +1,253 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+  <title>Daily Maintenance Report</title>
+  <style>
+    :root{ --radius:16px; --gap:14px; --font: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans Thai", sans-serif; }
+    *{box-sizing:border-box}
+    body{margin:0;background:#0b1220;color:#e5e7eb;font-family:var(--font);}
+    .wrap{max-width:960px;margin:0 auto;padding:24px;}
+    .card{background:#0f172a;border:1px solid #1f2937;border-radius:var(--radius);padding:22px;box-shadow:0 12px 28px rgba(0,0,0,.25)}
+    h1{margin:0 0 10px;font-size:22px}
+    p.sub{margin:0 0 16px;color:#9ca3af}
+    .grid{display:grid;grid-template-columns:1fr 1fr;gap:var(--gap)}
+    .full{grid-column:1 / -1}
+    label{display:block;font-size:13px;color:#9ca3af;margin:2px 0 6px}
+    input,select,textarea{
+      width:100%;padding:12px 14px;border:1px solid #374151;background:#0b1020;color:#e5e7eb;border-radius:12px;outline:none}
+    textarea{min-height:110px;resize:vertical}
+    .row{display:flex;gap:var(--gap);align-items:center;flex-wrap:wrap}
+    .actions{margin-top:18px}
+    button{padding:12px 18px;border:0;border-radius:12px;background:#22c55e;color:#052e13;font-weight:700;cursor:pointer}
+    button.secondary{background:#334155;color:#e5e7eb}
+    button[disabled]{opacity:.6;cursor:not-allowed}
+    .muted{color:#9ca3af;font-size:12px}
+    .ok{color:#86efac}
+    .err{color:#fca5a5}
+    .thumbs{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+    .thumbs .box{border:1px dashed #334155;border-radius:10px;padding:8px;text-align:center}
+    .thumbs img{max-width:100%;border-radius:8px;display:block;margin:0 auto}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <h1>Daily Maintenance Report</h1>
+      <p class="sub">UI รันบน GitHub Pages — ส่งข้อมูลเข้า Google Sheets ผ่าน Apps Script API</p>
+
+      <form id="f" autocomplete="off">
+        <div class="grid">
+          <div class="full">
+            <label>หัวเรื่อง (Subject)</label>
+            <input name="subject" placeholder="เช่น Motor F/C NG" required>
+          </div>
+
+          <div>
+            <label>Production line</label>
+            <select id="line" name="line" required></select>
+          </div>
+          <div>
+            <label>Sub-line</label>
+            <select id="subLine" name="subLine" required></select>
+          </div>
+
+          <div>
+            <label>Tooling</label>
+            <select id="tooling" name="tooling"></select>
+          </div>
+          <div>
+            <label>Machine</label>
+            <select id="machineName" name="machineName"></select>
+          </div>
+
+          <div>
+            <label>Working Start</label>
+            <input type="time" name="workingStart">
+          </div>
+          <div>
+            <label>Working End</label>
+            <input type="time" name="workingEnd">
+          </div>
+
+          <div class="full">
+            <label>The Problem Causes</label>
+            <textarea name="problem" placeholder="รายละเอียดปัญหา/สาเหตุ"></textarea>
+          </div>
+          <div class="full">
+            <label>Solved Action</label>
+            <textarea name="action" placeholder="การแก้ไข/ผลลัพธ์"></textarea>
+          </div>
+
+          <div class="full">
+            <label>แนบรูป (สูงสุด 4 รูป)</label>
+            <input id="photos" type="file" accept="image/*" multiple>
+            <div class="thumbs" id="preview"></div>
+          </div>
+        </div>
+
+        <div class="row actions">
+          <button id="btnSave" type="submit">บันทึก</button>
+          <button class="secondary" type="button" id="btnReset">ล้างฟอร์ม</button>
+          <span id="msg" class="muted"></span>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+  // ====== ตั้งค่า API ของคุณ ======
+  const API_BASE = 'https://script.google.com/macros/s/AKfycbzwWhsJyolGUPmZ2hMU8JpiYCGHdWytd6KF-Q6ttV81P5wwhoBd2UB4zoIk6vQGDyknFQ/exec';     // URL /exec จากการ Deploy
+  const API_KEY  = '91vGmIU9y7rotiTQY60iAGq';                            // ต้องตรงกับ SIMPLE_KEY
+
+  const selLine   = document.getElementById('line');
+  const selSub    = document.getElementById('subLine');
+  const selTool   = document.getElementById('tooling');
+  const selMach   = document.getElementById('machineName');
+  const inputPhotos = document.getElementById('photos');
+  const preview     = document.getElementById('preview');
+  const form        = document.getElementById('f');
+  const btnSave     = document.getElementById('btnSave');
+  const btnReset    = document.getElementById('btnReset');
+  const msg         = document.getElementById('msg');
+
+  let LOOKUP = null;   // เก็บข้อมูลจาก getLookups()
+
+  // ========== Helper ==========
+  function opt(value, label){ const o=document.createElement('option'); o.value=value; o.textContent=label; return o; }
+  function clearSelect(sel){ sel.innerHTML=''; }
+  function setLoading(t){ btnSave.disabled = t; }
+
+  async function fileToDataUrl(file){
+    if (!file) return null;
+    const array = new Uint8Array(await file.arrayBuffer());
+    let binary = '';
+    for (let i=0;i<array.length;i++) binary += String.fromCharCode(array[i]);
+    const base64 = btoa(binary);
+    return `data:${file.type||'image/png'};base64,${base64}`;
+  }
+
+  function renderPreview(files){
+    preview.innerHTML='';
+    const n = Math.min(files.length, 4);
+    for (let i=0;i<n;i++){
+      const f = files[i];
+      const box = document.createElement('div'); box.className='box';
+      const p = document.createElement('div'); p.textContent = f.name; p.style.fontSize='12px'; p.style.marginBottom='6px';
+      const img = document.createElement('img'); img.alt = f.name;
+      const reader = new FileReader(); reader.onload = e => img.src = e.target.result; reader.readAsDataURL(f);
+      box.appendChild(p); box.appendChild(img); preview.appendChild(box);
+    }
+  }
+
+  // ========== Lookup chain ==========
+  function populateLines(){
+    clearSelect(selLine); clearSelect(selSub); clearSelect(selTool); clearSelect(selMach);
+    selLine.appendChild(opt('','— เลือก Line —'));
+    if (!LOOKUP || !LOOKUP.lines) return;
+    LOOKUP.lines.forEach(L => selLine.appendChild(opt(L.line, L.line)));
+  }
+
+  function populateSubs(){
+    clearSelect(selSub); clearSelect(selTool); clearSelect(selMach);
+    selSub.appendChild(opt('','— เลือก Sub-line —'));
+    const line = selLine.value;
+    const L = (LOOKUP.lines || []).find(x => x.line === line);
+    if (!L) return;
+    L.subs.forEach(s => selSub.appendChild(opt(s.sub, s.sub)));
+  }
+
+  function populateTooling(){
+    clearSelect(selTool); clearSelect(selMach);
+    selTool.appendChild(opt('','— เลือก Tooling (ถ้ามี) —'));
+    const line = selLine.value, sub = selSub.value;
+    const L = (LOOKUP.lines || []).find(x => x.line === line);
+    if (!L) return;
+    const S = (L.subs || []).find(x => x.sub === sub);
+    if (!S) return;
+    (S.toolings || []).forEach(t => selTool.appendChild(opt(t, t)));
+    populateMachines(); // อัปเดตเครื่องด้วย
+  }
+
+  function populateMachines(){
+    clearSelect(selMach);
+    selMach.appendChild(opt('','— เลือก Machine —'));
+    const line = selLine.value, sub = selSub.value, tool = selTool.value;
+    const L = (LOOKUP.lines || []).find(x => x.line === line);
+    if (!L) return;
+    const S = (L.subs || []).find(x => x.sub === sub);
+    if (!S) return;
+    if (tool){
+      const list = (S.machinesByTool && S.machinesByTool[tool]) || [];
+      (list.length ? list : (S.machinesAll || [])).forEach(m => selMach.appendChild(opt(m, m)));
+    } else {
+      (S.machinesAll || []).forEach(m => selMach.appendChild(opt(m, m)));
+    }
+  }
+
+  selLine.addEventListener('change', populateSubs);
+  selSub.addEventListener('change', populateTooling);
+  selTool.addEventListener('change', populateMachines);
+  inputPhotos.addEventListener('change', () => renderPreview(inputPhotos.files));
+
+  // ========== Load lookups ==========
+  async function loadLookups(){
+    const r = await fetch(`${API_BASE}?a=lookups&k=${encodeURIComponent(API_KEY)}`);
+    const j = await r.json();
+    if (!j.ok) throw new Error(j.message || 'โหลด lookup ไม่สำเร็จ');
+    LOOKUP = j;
+    populateLines();
+  }
+
+  // ========== Submit ==========
+  form.addEventListener('submit', async ev => {
+    ev.preventDefault();
+    msg.textContent = '';
+    setLoading(true);
+    try{
+      const fd = new FormData(form);
+      const payload = Object.fromEntries(fd.entries());
+
+      // แนบรูปสูงสุด 4 รูป
+      const files = Array.from(inputPhotos.files || []).slice(0,4);
+      payload.photos = [];
+      for (let i=0;i<files.length;i++){
+        const f = files[i];
+        const dataUrl = await fileToDataUrl(f);
+        payload.photos.push({ name: f.name, dataUrl });
+      }
+
+      const res = await fetch(`${API_BASE}?a=save&k=${encodeURIComponent(API_KEY)}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain' }, // เลี่ยง preflight
+        body: JSON.stringify(payload)
+      });
+      const j = await res.json();
+      if (!j.ok) throw new Error(j.error || 'บันทึกไม่สำเร็จ');
+      msg.textContent = '✅ บันทึกสำเร็จ';
+      msg.className = 'ok';
+      form.reset();
+      preview.innerHTML='';
+      selTool.innerHTML=''; selMach.innerHTML='';
+    } catch (e){
+      msg.textContent = '❌ ' + e.message;
+      msg.className = 'err';
+    } finally {
+      setLoading(false);
+    }
+  });
+
+  btnReset.addEventListener('click', () => {
+    form.reset(); preview.innerHTML=''; msg.textContent='';
+    populateSubs(); // เคลียร์ chain
+  });
+
+  // เริ่มต้น
+  loadLookups().catch(e=>{
+    msg.textContent = 'โหลด lookup ไม่สำเร็จ: ' + e.message;
+    msg.className = 'err';
+  });
+  </script>
+</body>
+</html>
