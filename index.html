@@ -1,253 +1,590 @@
 <!doctype html>
 <html lang="th">
 <head>
-  <meta charset="utf-8"/>
-  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
-  <title>Daily Maintenance Report</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Maintenance Report</title>
   <style>
-    :root{ --radius:16px; --gap:14px; --font: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans Thai", sans-serif; }
-    *{box-sizing:border-box}
-    body{margin:0;background:#0b1220;color:#e5e7eb;font-family:var(--font);}
-    .wrap{max-width:960px;margin:0 auto;padding:24px;}
-    .card{background:#0f172a;border:1px solid #1f2937;border-radius:var(--radius);padding:22px;box-shadow:0 12px 28px rgba(0,0,0,.25)}
-    h1{margin:0 0 10px;font-size:22px}
-    p.sub{margin:0 0 16px;color:#9ca3af}
-    .grid{display:grid;grid-template-columns:1fr 1fr;gap:var(--gap)}
-    .full{grid-column:1 / -1}
-    label{display:block;font-size:13px;color:#9ca3af;margin:2px 0 6px}
-    input,select,textarea{
-      width:100%;padding:12px 14px;border:1px solid #374151;background:#0b1020;color:#e5e7eb;border-radius:12px;outline:none}
-    textarea{min-height:110px;resize:vertical}
-    .row{display:flex;gap:var(--gap);align-items:center;flex-wrap:wrap}
-    .actions{margin-top:18px}
-    button{padding:12px 18px;border:0;border-radius:12px;background:#22c55e;color:#052e13;font-weight:700;cursor:pointer}
-    button.secondary{background:#334155;color:#e5e7eb}
-    button[disabled]{opacity:.6;cursor:not-allowed}
-    .muted{color:#9ca3af;font-size:12px}
-    .ok{color:#86efac}
-    .err{color:#fca5a5}
-    .thumbs{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
-    .thumbs .box{border:1px dashed #334155;border-radius:10px;padding:8px;text-align:center}
-    .thumbs img{max-width:100%;border-radius:8px;display:block;margin:0 auto}
+    /* ===== Comfort profile for mobile-first ===== */
+    :root{
+      /* ↓ ย่อฟอนต์ลงเล็กน้อย ตามที่ขอ (ข้อ 2) */
+      --body-size: clamp(16px, 0.85rem + 1.4vw, 19px);
+      --h1-size: clamp(21px, 0.95rem + 2.6vw, 25px);
+      --h2-size: clamp(19px, 0.9rem + 2.0vw, 22px);
+
+      --label-size: clamp(14px, 0.8rem + 0.5vw, 16px);
+      --note-size: clamp(12px, 0.75rem + 0.35vw, 15px);
+
+      --control-size: clamp(15px, 0.85rem + 1.0vw, 18px);
+      --button-size: clamp(14px, 0.8rem + 0.9vw, 17px);
+
+      --control-pad-y: 12px; --control-pad-x: 14px;
+      --button-pad-y: 11px; --button-pad-x: 16px;
+
+      --bg:#e9f7ef; --text:#111; --card:#fff; --border:#e5e7eb; --shadow:0 10px 24px rgba(0,0,0,.06);
+      --safe-b: env(safe-area-inset-bottom, 0px);
+
+      --page-gutter: clamp(4px, 1.2vw, 12px);
+      --card-max: 680px;
+    }
+
+    html,body{height:100%}
+    body{
+      margin:0; padding:0; background:var(--bg); color:var(--text);
+      font-family: Arial, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", sans-serif;
+      line-height:1.6; -webkit-text-size-adjust:100%;
+      font-size: var(--body-size);
+    }
+
+    .container{
+      width: calc(100vw - 2*var(--page-gutter));
+      max-width: var(--card-max);
+      margin: 8px auto 16px;
+      padding: 0 var(--page-gutter);
+    }
+    .section{ margin-bottom: 10px; }
+    .card{
+      background:var(--card); border:1px solid var(--border); border-radius:18px;
+      box-shadow:var(--shadow); padding:18px;
+    }
+
+    h1{ margin:0 0 6px; font-size: var(--h1-size); }
+    h2{ margin:0 0 10px; font-size: var(--h2-size); }
+
+    label{ display:block; font-weight:700; margin-bottom:8px; font-size: var(--label-size); }
+    .note{ font-size: var(--note-size); color:#333; opacity:.95 }
+
+    select, textarea, input[type="text"], input[type="time"]{
+      width:100%;
+      border:1.6px solid var(--border);
+      border-radius:14px;
+      padding: var(--control-pad-y) var(--control-pad-x);
+      font-size: var(--control-size);
+      background:#fff; color:var(--text);
+      outline:none;
+    }
+    textarea{ min-height: 140px; resize: vertical; }
+
+    .grid2{ display:grid; gap:10px; grid-template-columns: 1fr; }
+    @media(min-width:520px){ .grid2{ grid-template-columns: 1fr 1fr; align-items:end; } }
+
+    .time-row{ display:grid; grid-template-columns: 1fr auto 1fr; gap:8px; align-items:center; }
+    .time-sep{ text-align:center; font-weight:700; }
+
+    .row{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+    .pill{
+      display:inline-flex; align-items:center; gap:10px;
+      border:1px solid var(--border); border-radius:999px;
+      padding:10px 14px; background:#fff; font-size:0.96em;
+    }
+
+    .file{ border:1.6px dashed #bdbdbd; border-radius:14px; padding:16px; background:#fafafa; }
+
+    .summary{ display:grid; gap:10px; }
+    .sum-row{ display:flex; gap:8px; align-items:flex-start; }
+    .sum-label{ min-width:140px; font-weight:900; }
+    .sum-val{ flex:1; white-space:pre-wrap; word-break:break-word; }
+    @media(max-width:420px){ .sum-label{ min-width:120px; } }
+
+    .photo-grid{ display:grid; grid-template-columns: 1fr 1fr; gap:8px; margin-top:6px; }
+    .photo-grid img{
+      width:100%; aspect-ratio:1/1; object-fit:cover;
+      border-radius:10px; border:1px solid var(--border); background:#fff;
+    }
+
+    .actions{ display:flex; gap:12px; flex-wrap:wrap; margin-top:12px; justify-content:center; }
+    button{
+      border:1.6px solid #111; color:#111; background:#fff;
+      border-radius:14px;
+      padding: var(--button-pad-y) var(--button-pad-x);
+      font-weight:900; cursor:pointer; font-size: var(--button-size);
+      touch-action:manipulation;
+    }
+    button:hover{ filter:brightness(0.97); }
+
+    .sticky{
+      position:sticky; bottom:0; z-index:5;
+      background:linear-gradient(to top, rgba(233,247,239,0.98), rgba(233,247,239,0.6));
+      border-top:1px solid var(--border);
+      padding:12px 12px calc(12px + var(--safe-b));
+      margin:8px -12px -12px; backdrop-filter: blur(6px);
+      border-bottom-left-radius:18px; border-bottom-right-radius:18px;
+    }
+
+    .modal-backdrop{ position:fixed; inset:0; background:rgba(0,0,0,.35); display:none; align-items:center; justify-content:center; z-index:50; }
+    .modal{
+      width:min(94vw, 520px); background:#fff; color:#111; border-radius:16px; border:1px solid var(--border);
+      box-shadow:0 20px 50px rgba(0,0,0,.25); padding:18px; text-align:center; font-size: 0.96em;
+    }
+    .badge{ display:inline-block; padding:6px 10px; border-radius:999px; border:1px solid #e6e6e6; background:#f7f7f7; margin-bottom:8px; }
+    .hidden{ display:none; }
+    .ok{ border-color:#16a34a; background:#dcfce7; }
+    .err{ border-color:#ef4444; background:#fee2e2; }
+
+    *, *::before, *::after { box-sizing: border-box; }
+    html, body { overflow-x: hidden; }
+    .card { contain: layout; }
+    textarea { overflow:auto; -webkit-overflow-scrolling:touch; word-break:break-word; overflow-wrap:anywhere; }
   </style>
 </head>
 <body>
-  <div class="wrap">
-    <div class="card">
-      <h1>Daily Maintenance Report</h1>
-      <p class="sub">UI รันบน GitHub Pages — ส่งข้อมูลเข้า Google Sheets ผ่าน Apps Script API</p>
+  <div class="container">
+    <form id="reportForm">
+      <div class="section card">
+        <h1>Maintenance Report</h1>
+      </div>
 
-      <form id="f" autocomplete="off">
-        <div class="grid">
-          <div class="full">
-            <label>หัวเรื่อง (Subject)</label>
-            <input name="subject" placeholder="เช่น Motor F/C NG" required>
-          </div>
-
+      <!-- 1) Purpose + Working time -->
+      <div class="section card">
+        <h2>1) Heading (Purpose) &emsp;&emsp;&emsp;&emsp;Working time</h2>
+        <div class="grid2">
           <div>
-            <label>Production line</label>
-            <select id="line" name="line" required></select>
-          </div>
-          <div>
-            <label>Sub-line</label>
-            <select id="subLine" name="subLine" required></select>
-          </div>
-
-          <div>
-            <label>Tooling</label>
-            <select id="tooling" name="tooling"></select>
+            <select id="subject" name="subject" required>
+              <option value="" disabled selected>-- เลือกวัตถุประสงค์ --</option>
+              <option>Check</option>
+              <option>Improvement</option>
+              <option>Repair</option>
+              <option>Trial</option>
+              <option>PM</option>
+            </select>
           </div>
           <div>
-            <label>Machine</label>
-            <select id="machineName" name="machineName"></select>
-          </div>
-
-          <div>
-            <label>Working Start</label>
-            <input type="time" name="workingStart">
-          </div>
-          <div>
-            <label>Working End</label>
-            <input type="time" name="workingEnd">
-          </div>
-
-          <div class="full">
-            <label>The Problem Causes</label>
-            <textarea name="problem" placeholder="รายละเอียดปัญหา/สาเหตุ"></textarea>
-          </div>
-          <div class="full">
-            <label>Solved Action</label>
-            <textarea name="action" placeholder="การแก้ไข/ผลลัพธ์"></textarea>
-          </div>
-
-          <div class="full">
-            <label>แนบรูป (สูงสุด 4 รูป)</label>
-            <input id="photos" type="file" accept="image/*" multiple>
-            <div class="thumbs" id="preview"></div>
+            <div class="time-row">
+              <input type="time" id="wtStart" step="60" aria-label="เวลาเริ่ม">
+              <div class="time-sep">ถึง</div>
+              <input type="time" id="wtEnd" step="60" aria-label="เวลาจบ">
+            </div>
           </div>
         </div>
+      </div>
 
-        <div class="row actions">
-          <button id="btnSave" type="submit">บันทึก</button>
-          <button class="secondary" type="button" id="btnReset">ล้างฟอร์ม</button>
-          <span id="msg" class="muted"></span>
+      <!-- 2) Line -->
+      <div class="section card">
+        <h2>2) Production line</h2>
+        <select id="lineSel" required>
+          <option value="" disabled selected>กำลังโหลด…</option>
+        </select>
+      </div>
+
+      <!-- 3) Sub-line -->
+      <div class="section card">
+        <h2>3) Sub-line</h2>
+        <select id="subSel" required disabled>
+          <option value="" disabled selected>เลือก Production line ก่อน</option>
+        </select>
+      </div>
+
+      <!-- 4) Tooling -->
+      <div class="section card">
+        <h2>4) Tooling list</h2>
+        <select id="toolSel" disabled>
+          <option value="" selected>— ไม่เลือก —</option>
+        </select>
+      </div>
+
+      <!-- 5) Machine -->
+      <div class="section card">
+        <h2>5) Machine list</h2>
+        <select id="machineSel" disabled>
+          <option value="" selected>— ไม่เลือก —</option>
+        </select>
+      </div>
+
+      <!-- 6) Problem -->
+      <div class="section card">
+        <h2>6) The Problem Causes</h2>
+        <textarea id="problem" name="problem" placeholder="อธิบายสาเหตุปัญหา..." required></textarea>
+      </div>
+
+      <!-- 7) Action + รูป -->
+      <div class="section card">
+        <h2>7) Solved Action & แนบรูป</h2>
+        <textarea id="action" name="action" placeholder="อธิบายการแก้ไข..." required></textarea>
+
+        <div style="margin-top:16px;">
+          <div class="file">
+            <input id="mediaPicker" type="file" accept="image/*" multiple style="display:none;">
+            <div class="row" style="margin:6px 0 4px;">
+              <button type="button" id="btnCamera" class="pill">📷 เปิดกล้องถ่าย</button>
+              <button type="button" id="btnGallery" class="pill">🔗 เลือกจากคลังรูป</button>
+              <button type="button" id="btnClearPhotos" class="pill">♻️ ล้างรูป</button>
+            </div>
+            <div class="note">แนบได้สูงสุด 4 รูป — จะแสดงพรีวิวเฉพาะใน “สรุปก่อนส่ง” ด้านล่าง</div>
+          </div>
         </div>
-      </form>
+      </div>
+
+      <!-- 8) สรุปก่อนส่ง -->
+      <div class="section card">
+        <h2>สรุปข้อมูลก่อนส่ง</h2>
+        <div class="summary">
+          <div class="sum-row"><div class="sum-label">Purpose</div><div class="sum-val" id="sum_subject">—</div></div>
+          <div class="sum-row"><div class="sum-label">Working time</div><div class="sum-val" id="sum_wtime">—</div></div>
+          <div class="sum-row"><div class="sum-label">Production line</div><div class="sum-val" id="sum_line">—</div></div>
+          <div class="sum-row"><div class="sum-label">Sub-line</div><div class="sum-val" id="sum_sub">—</div></div>
+          <div class="sum-row"><div class="sum-label">Tooling</div><div class="sum-val" id="sum_tool">—</div></div>
+          <div class="sum-row"><div class="sum-label">Machine</div><div class="sum-val" id="sum_machine">—</div></div>
+          <div class="sum-row"><div class="sum-label">Problem</div><div class="sum-val" id="sum_problem">—</div></div>
+          <div class="sum-row"><div class="sum-label">Action</div><div class="sum-val" id="sum_action">—</div></div>
+
+          <div class="photo-grid" id="sum_photos" style="display:none;"></div>
+          <div class="note" id="sum_photoNote">แนบรูป: —</div>
+        </div>
+
+        <div class="sticky">
+          <div class="actions">
+            <button type="submit" id="submitBtn">บันทึกข้อมูล</button>
+            <button type="reset" id="resetBtn">ล้างฟอร์ม</button>
+          </div>
+        </div>
+      </div>
+    </form>
+  </div>
+
+  <!-- MODAL -->
+  <div id="modalBackdrop" class="modal-backdrop">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+      <span id="modalBadge" class="badge ok">สำเร็จ</span>
+      <h3 id="modalTitle">🎉 บันทึกสำเร็จ 🆗</h3>
+      <p id="modalMsg">กลับไปทำงานต่อได้ Lets go</p>
+      <div class="row" style="justify-content:center; gap:10px;">
+        <button id="newForm" class="pill">กรอกใหม่</button>
+        <button id="closeModal" class="pill">ปิด</button>
+      </div>
     </div>
   </div>
 
-  <script>
-  // ====== ตั้งค่า API ของคุณ ======
-  const API_BASE = 'https://script.google.com/macros/s/AKfycbzwWhsJyolGUPmZ2hMU8JpiYCGHdWytd6KF-Q6ttV81P5wwhoBd2UB4zoIk6vQGDyknFQ/exec';  // /exec จาก Deploy ล่าสุด
-  const API_KEY  = 'wwvGmIU9y7rotiTQY60iAGq';  // ต้องตรงกับ SIMPLE_KEY ใน Apps Script
+<script>
+  /* ====== ตั้งค่า API ของคุณ ====== */
+  const API_BASE = 'https://script.google.com/macros/s/AKfycbzwWhsJyolGUPmZ2hMU8JpiYCGHdWytd6KF-Q6ttV81P5wwhoBd2UB4zoIk6vQGDyknFQ/exec';
+  const API_KEY  = 'wwvGmIU9y7rotiTQY60iAGq'; // ต้องตรงกับ SIMPLE_KEY
 
-  const selLine   = document.getElementById('line');
-  const selSub    = document.getElementById('subLine');
-  const selTool   = document.getElementById('tooling');
-  const selMach   = document.getElementById('machineName');
-  const inputPhotos = document.getElementById('photos');
-  const preview     = document.getElementById('preview');
-  const form        = document.getElementById('f');
-  const btnSave     = document.getElementById('btnSave');
-  const btnReset    = document.getElementById('btnReset');
-  const msg         = document.getElementById('msg');
+  const $ = s => document.querySelector(s);
 
-  let LOOKUP = null;   // เก็บข้อมูลจาก getLookups()
-
-  // ========== Helper ==========
-  function opt(value, label){ const o=document.createElement('option'); o.value=value; o.textContent=label; return o; }
-  function clearSelect(sel){ sel.innerHTML=''; }
-  function setLoading(t){ btnSave.disabled = t; }
-
-  async function fileToDataUrl(file){
-    if (!file) return null;
-    const array = new Uint8Array(await file.arrayBuffer());
-    let binary = '';
-    for (let i=0;i<array.length;i++) binary += String.fromCharCode(array[i]);
-    const base64 = btoa(binary);
-    return `data:${file.type||'image/png'};base64,${base64}`;
+  /* ===== Modal ===== */
+  const modal = $('#modalBackdrop');
+  $('#closeModal').addEventListener('click', ()=> modal.style.display='none');
+  $('#newForm').addEventListener('click', ()=>{
+    modal.style.display='none';
+    document.getElementById('reportForm').reset();
+    hardResetUI();
+  });
+  function showModal({ ok, title, message } = {}){
+    $('#modalBadge').className = 'badge ' + (ok ? 'ok' : 'err');
+    if (typeof title === 'string')  $('#modalTitle').textContent = title;
+    if (typeof message === 'string')$('#modalMsg').textContent   = message;
+    modal.style.display = 'flex';
+    modal.addEventListener('click', e=>{ if (e.target===modal) modal.style.display='none'; }, { once:true });
+    document.addEventListener('keydown', e=>{ if (e.key==='Escape') modal.style.display='none'; }, { once:true });
   }
 
-  function renderPreview(files){
-    preview.innerHTML='';
-    const n = Math.min(files.length, 4);
-    for (let i=0;i<n;i++){
-      const f = files[i];
-      const box = document.createElement('div'); box.className='box';
-      const p = document.createElement('div'); p.textContent = f.name; p.style.fontSize='12px'; p.style.marginBottom='6px';
-      const img = document.createElement('img'); img.alt = f.name;
-      const reader = new FileReader(); reader.onload = e => img.src = e.target.result; reader.readAsDataURL(f);
-      box.appendChild(p); box.appendChild(img); preview.appendChild(box);
+  /* ===== LOOKUP maps ===== */
+  let LOOKUP=[], SUBS_BY_LINE={}, TOOLS_BY_PAIR={}, MACHINES_BY_TRIPLE={}, MACHINES_BY_PAIR={}, TOOLS_BY_MACHINE_TRIPLE={};
+  const k2=(l,s)=>`${l}||${s}`, k3=(l,s,t)=>`${l}||${s}||${t}`, km=(l,s,m)=>`${l}||${s}||${m}`;
+  const uniq = a=>Array.from(new Set(a));
+  const normStr = s => String(s||'').trim();
+  const hasValue = (arr, val) => (arr||[]).some(x => normStr(x) === normStr(val));
+
+  function fillSelect(id, items, ph, {allowNone=false, disabledWhenEmpty=true} = {}){
+    const sel = document.getElementById(id);
+    sel.innerHTML='';
+    if (!items || !items.length){
+      const o0=document.createElement('option');
+      o0.value=''; o0.disabled=true; o0.selected=true; o0.textContent=ph||'-- เลือก --';
+      sel.appendChild(o0);
+      sel.disabled = !!disabledWhenEmpty;
+      return;
     }
+    const o0=document.createElement('option');
+    o0.value=''; o0.disabled=true; o0.selected=true; o0.textContent=ph||'-- เลือก --';
+    sel.appendChild(o0);
+    if (allowNone){
+      const on=document.createElement('option');
+      on.value=''; on.textContent='— ไม่เลือก —';
+      sel.appendChild(on);
+    }
+    items.forEach(v=>{ const o=document.createElement('option'); o.value=v; o.textContent=v; sel.appendChild(o); });
+    sel.disabled = false;
   }
 
-  // ========== Lookup chain ==========
-  function populateLines(){
-    clearSelect(selLine); clearSelect(selSub); clearSelect(selTool); clearSelect(selMach);
-    selLine.appendChild(opt('','— เลือก Line —'));
-    if (!LOOKUP || !LOOKUP.lines) return;
-    LOOKUP.lines.forEach(L => selLine.appendChild(opt(L.line, L.line)));
+  function initLookupsFromAPI(res){
+    if (!res || !res.ok){
+      alert('โหลดลิสต์ไม่สำเร็จ: ' + (res && res.message ? res.message : 'ไม่ทราบสาเหตุ'));
+      fillSelect('lineSel', [], '— ไม่พบลิสต์ —');
+      return;
+    }
+    LOOKUP = res.lines||[];
+    SUBS_BY_LINE={}; TOOLS_BY_PAIR={}; MACHINES_BY_TRIPLE={}; MACHINES_BY_PAIR={}; TOOLS_BY_MACHINE_TRIPLE={};
+
+    LOOKUP.forEach(g=>{
+      const line=g.line, subs=g.subs||[];
+      SUBS_BY_LINE[line]=subs.map(s=>s.sub);
+      subs.forEach(s=>{
+        const sub=s.sub, tools=s.toolings||[];
+        TOOLS_BY_PAIR[k2(line,sub)] = tools;
+
+        const mbt = s.machinesByTool || {};
+        let union = [];
+        Object.keys(mbt).forEach(tKey=>{
+          const list = Array.isArray(mbt[tKey]) ? mbt[tKey] : [];
+          union = union.concat(list);
+          if (tKey){
+            MACHINES_BY_TRIPLE[k3(line,sub,tKey)] = list;
+            list.forEach(m=>{
+              const key = km(line,sub,m);
+              if(!TOOLS_BY_MACHINE_TRIPLE[key]) TOOLS_BY_MACHINE_TRIPLE[key] = [];
+              TOOLS_BY_MACHINE_TRIPLE[key].push(tKey);
+            });
+          }
+        });
+        MACHINES_BY_PAIR[k2(line,sub)] = uniq(union).sort();
+      });
+    });
+
+    fillSelect('lineSel', LOOKUP.map(x=>x.line), '-- เลือก Production line --');
+    fillSelect('subSel', [], 'เลือก Production line ก่อน');
+    fillSelect('toolSel', [], '— ไม่เลือก —', {allowNone:true, disabledWhenEmpty:true});
+    fillSelect('machineSel', [], '— ไม่เลือก —', {allowNone:true, disabledWhenEmpty:true});
+    updateSummary();
   }
 
-  function populateSubs(){
-    clearSelect(selSub); clearSelect(selTool); clearSelect(selMach);
-    selSub.appendChild(opt('','— เลือก Sub-line —'));
-    const line = selLine.value;
-    const L = (LOOKUP.lines || []).find(x => x.line === line);
-    if (!L) return;
-    L.subs.forEach(s => selSub.appendChild(opt(s.sub, s.sub)));
-  }
+  function syncToolByMachine(){
+    const line = document.getElementById('lineSel').value;
+    const sub  = document.getElementById('subSel').value;
+    const mach = document.getElementById('machineSel').value;
+    const toolSelEl = document.getElementById('toolSel');
+    const prevTool  = toolSelEl.value;
 
-  function populateTooling(){
-    clearSelect(selTool); clearSelect(selMach);
-    selTool.appendChild(opt('','— เลือก Tooling (ถ้ามี) —'));
-    const line = selLine.value, sub = selSub.value;
-    const L = (LOOKUP.lines || []).find(x => x.line === line);
-    if (!L) return;
-    const S = (L.subs || []).find(x => x.sub === sub);
-    if (!S) return;
-    (S.toolings || []).forEach(t => selTool.appendChild(opt(t, t)));
-    populateMachines(); // อัปเดตเครื่องด้วย
-  }
-
-  function populateMachines(){
-    clearSelect(selMach);
-    selMach.appendChild(opt('','— เลือก Machine —'));
-    const line = selLine.value, sub = selSub.value, tool = selTool.value;
-    const L = (LOOKUP.lines || []).find(x => x.line === line);
-    if (!L) return;
-    const S = (L.subs || []).find(x => x.sub === sub);
-    if (!S) return;
-    if (tool){
-      const list = (S.machinesByTool && S.machinesByTool[tool]) || [];
-      (list.length ? list : (S.machinesAll || [])).forEach(m => selMach.appendChild(opt(m, m)));
+    if (!line || !sub){
+      fillSelect('toolSel', [], '— ไม่เลือก —', {allowNone:true, disabledWhenEmpty:true});
+      return;
+    }
+    if (mach){
+      const list = TOOLS_BY_MACHINE_TRIPLE[km(line,sub,mach)] || [];
+      fillSelect('toolSel', list, list.length ? '-- เลือก Tooling --' : '— ไม่มี Tooling ที่ผูกกับเครื่องนี้ —',
+                 {allowNone:true, disabledWhenEmpty:false});
+      if (prevTool && hasValue(list, prevTool)) toolSelEl.value = prevTool;
     } else {
-      (S.machinesAll || []).forEach(m => selMach.appendChild(opt(m, m)));
+      const list = TOOLS_BY_PAIR[k2(line,sub)] || [];
+      fillSelect('toolSel', list, list.length ? '-- เลือก Tooling --' : '— ไม่เลือก —',
+                 {allowNone:true, disabledWhenEmpty:list.length===0});
+      if (prevTool && hasValue(list, prevTool)) toolSelEl.value = prevTool;
     }
   }
 
-  selLine.addEventListener('change', populateSubs);
-  selSub.addEventListener('change', populateTooling);
-  selTool.addEventListener('change', populateMachines);
-  inputPhotos.addEventListener('change', () => renderPreview(inputPhotos.files));
+  function syncMachineByTool(){
+    const line = document.getElementById('lineSel').value;
+    const sub  = document.getElementById('subSel').value;
+    const tool = document.getElementById('toolSel').value;
+    const machSelEl = document.getElementById('machineSel');
+    const prevMach  = machSelEl.value;
 
-  // ========== Load lookups ==========
-  async function loadLookups(){
-    const r = await fetch(`${API_BASE}?a=lookups&k=${encodeURIComponent(API_KEY)}`);
-    const j = await r.json();
-    if (!j.ok) throw new Error(j.message || 'โหลด lookup ไม่สำเร็จ');
-    LOOKUP = j;
-    populateLines();
+    if (!line || !sub){
+      fillSelect('machineSel', [], '— ไม่เลือก —', {allowNone:true, disabledWhenEmpty:true});
+      return;
+    }
+    if (tool){
+      const list = MACHINES_BY_TRIPLE[k3(line,sub,tool)] || [];
+      fillSelect('machineSel', list, list.length ? '-- เลือก Machine --' : '— ไม่มีเครื่องสำหรับ Tooling นี้ —',
+                 {allowNone:true, disabledWhenEmpty:list.length===0});
+      if (prevMach && hasValue(list, prevMach)) machSelEl.value = prevMach;
+    } else {
+      const list = MACHINES_BY_PAIR[k2(line,sub)] || [];
+      fillSelect('machineSel', list, list.length ? '-- เลือกเครื่องจักร --' : '— ไม่เลือก —',
+                 {allowNone:true, disabledWhenEmpty:list.length===0});
+      if (prevMach && hasValue(list, prevMach)) machSelEl.value = prevMach;
+    }
   }
 
-  // ========== Submit ==========
-  form.addEventListener('submit', async ev => {
-    ev.preventDefault();
-    msg.textContent = '';
-    setLoading(true);
-    try{
-      const fd = new FormData(form);
-      const payload = Object.fromEntries(fd.entries());
+  /* ===== DOM Ready ===== */
+  document.addEventListener('DOMContentLoaded', ()=>{
+    // โหลด lookups ผ่าน API (แทน google.script.run)
+    fetch(`${API_BASE}?a=lookups&k=${encodeURIComponent(API_KEY)}`)
+      .then(r=>r.json())
+      .then(initLookupsFromAPI)
+      .catch(err=>{
+        alert('โหลดลิสต์ไม่สำเร็จ: ' + (err && err.message ? err.message : String(err)));
+      });
 
-      // แนบรูปสูงสุด 4 รูป
-      const files = Array.from(inputPhotos.files || []).slice(0,4);
-      payload.photos = [];
-      for (let i=0;i<files.length;i++){
-        const f = files[i];
-        const dataUrl = await fileToDataUrl(f);
-        payload.photos.push({ name: f.name, dataUrl });
+    const lineSel=$('#lineSel'), subSel=$('#subSel'), toolSel=$('#toolSel'), machineSel=$('#machineSel');
+
+    lineSel.addEventListener('change', ()=>{
+      const line=lineSel.value;
+      fillSelect('subSel', SUBS_BY_LINE[line]||[], '-- เลือก Sub-line --');
+      fillSelect('toolSel', [], '— ไม่เลือก —', {allowNone:true, disabledWhenEmpty:true});
+      fillSelect('machineSel', [], '— ไม่เลือก —', {allowNone:true, disabledWhenEmpty:true});
+      updateSummary();
+    });
+
+    subSel.addEventListener('change', ()=>{
+      const line=lineSel.value, sub=subSel.value;
+      fillSelect('toolSel', TOOLS_BY_PAIR[k2(line,sub)]||[], '-- เลือก Tooling --', {allowNone:true});
+      fillSelect('machineSel', MACHINES_BY_PAIR[k2(line,sub)]||[], '-- เลือก Machine --', {allowNone:true});
+      syncToolByMachine();
+      syncMachineByTool();
+      updateSummary();
+    });
+
+    toolSel.addEventListener('change', ()=>{
+      syncMachineByTool();
+      updateSummary();
+    });
+    machineSel.addEventListener('change', ()=>{
+      syncToolByMachine();
+      updateSummary();
+    });
+
+    ['subject','problem','action','wtStart','wtEnd'].forEach(id=>{
+      const el = document.getElementById(id);
+      el.addEventListener('input', updateSummary);
+      el.addEventListener('change', updateSummary);
+    });
+
+    /* ===== ภาพ: รองรับ 4 รูป, พรีวิวเฉพาะสรุป ===== */
+    const picker=$('#mediaPicker'), btnCamera=$('#btnCamera'), btnGallery=$('#btnGallery'), btnClear=$('#btnClearPhotos');
+    let files = []; let dataUrls = [];
+
+    function resetPhotos(){
+      files = []; dataUrls = [];
+      try{ picker.value=''; }catch(e){}
+      renderSummaryPhotos();
+    }
+    function readFilesAndPreview(list){
+      const arr = Array.from(list||[]).slice(0,4);
+      files = arr; dataUrls = [];
+      if (!arr.length){ renderSummaryPhotos(); return; }
+      let remain = arr.length;
+      arr.forEach((f,idx)=>{
+        const fr = new FileReader();
+        fr.onload = e=>{
+          dataUrls[idx] = e.target.result;
+          if (--remain===0) renderSummaryPhotos();
+        };
+        fr.readAsDataURL(f);
+      });
+    }
+    function renderSummaryPhotos(){
+      const grid = $('#sum_photos');
+      grid.innerHTML = '';
+      const urls = dataUrls.filter(Boolean).slice(0,4);
+      if (!urls.length){ grid.style.display='none'; $('#sum_photoNote').textContent='แนบรูป: —'; return; }
+      urls.forEach(u=>{
+        const img=document.createElement('img');
+        img.src=u; grid.appendChild(img);
+      });
+      grid.style.display='grid';
+      $('#sum_photoNote').textContent='แนบรูป: ' + urls.length + ' ไฟล์';
+    }
+
+    picker.addEventListener('change', ()=> readFilesAndPreview(picker.files));
+    $('#btnCamera').addEventListener('click', ()=>{
+      picker.setAttribute('accept','image/*;capture=camera');
+      picker.setAttribute('capture','environment');
+      picker.click();
+    });
+    $('#btnGallery').addEventListener('click', ()=>{
+      picker.setAttribute('accept','image/*');
+      picker.removeAttribute('capture');
+      picker.click();
+    });
+    $('#btnClearPhotos').addEventListener('click', resetPhotos);
+
+    /* ===== Submit / Reset ===== */
+    const form = document.getElementById('reportForm');
+    const submitBtn = document.getElementById('submitBtn');
+    const resetBtn = document.getElementById('resetBtn');
+    function setLoading(v){ submitBtn.disabled=v; resetBtn.disabled=v; submitBtn.textContent=v?'กำลังบันทึก...':'บันทึกข้อมูล'; }
+
+    form.addEventListener('reset', ()=> setTimeout(()=>{ hardResetUI(); },0));
+
+    function hardResetUI(){
+      $('#subject').selectedIndex = 0;
+      $('#wtStart').value=''; $('#wtEnd').value='';
+      $('#problem').value=''; $('#action').value='';
+
+      $('#lineSel').selectedIndex = 0;
+      fillSelect('subSel', [], 'เลือก Production line ก่อน');
+      fillSelect('toolSel', [], '— ไม่เลือก —', {allowNone:true, disabledWhenEmpty:true});
+      fillSelect('machineSel', [], '— ไม่เลือก —', {allowNone:true, disabledWhenEmpty:true});
+
+      resetPhotos();
+      updateSummary();
+    }
+
+    form.addEventListener('submit', async (e)=>{
+      e.preventDefault();
+
+      const ws=$('#wtStart').value, we=$('#wtEnd').value;
+      if ((ws && !we) || (!ws && we)) { alert('กรุณากรอก Working time ให้ครบทั้งเริ่มและสิ้นสุด'); return; }
+      if (ws && we && we < ws) { alert('เวลาเสร็จต้องไม่ก่อนเวลาเริ่ม'); return; }
+
+      if (!form.checkValidity()){ form.reportValidity(); return; }
+      setLoading(true);
+
+      const payload = {
+        subject: $('#subject').value.trim(),
+        line: $('#lineSel').value,
+        subLine: $('#subSel').value,
+        tooling: $('#toolSel').value,
+        machineName: $('#machineSel').value,
+        workingStart: ws || '',
+        workingEnd: we || '',
+        problem: $('#problem').value.trim(),
+        action: $('#action').value.trim(),
+        photos: []
+      };
+
+      if (files.length){
+        dataUrls.slice(0,4).forEach((u,i)=>{
+          if (u) payload.photos.push({ name: files[i] ? files[i].name : ('photo'+(i+1)+'.png'), dataUrl: u });
+        });
       }
 
-      const res = await fetch(`${API_BASE}?a=save&k=${encodeURIComponent(API_KEY)}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'text/plain' }, // เลี่ยง preflight
-        body: JSON.stringify(payload)
-      });
-      const j = await res.json();
-      if (!j.ok) throw new Error(j.error || 'บันทึกไม่สำเร็จ');
-      msg.textContent = '✅ บันทึกสำเร็จ';
-      msg.className = 'ok';
-      form.reset();
-      preview.innerHTML='';
-      selTool.innerHTML=''; selMach.innerHTML='';
-    } catch (e){
-      msg.textContent = '❌ ' + e.message;
-      msg.className = 'err';
-    } finally {
-      setLoading(false);
-    }
+      try{
+        const res = await fetch(`${API_BASE}?a=save&k=${encodeURIComponent(API_KEY)}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain' }, // เลี่ยง preflight
+          body: JSON.stringify(payload)
+        });
+        const j = await res.json();
+        setLoading(false);
+        if (j && j.ok){
+          showModal({ ok: true });
+          form.reset();
+          hardResetUI();
+        } else {
+          showModal({
+            ok: false,
+            title: '❌ บันทึกไม่สำเร็จ',
+            message: (j && (j.error||j.message)) || 'กรุณาลองใหม่อีกครั้ง'
+          });
+        }
+      } catch(err){
+        setLoading(false);
+        showModal({
+          ok: false,
+          title: '❌ บันทึกไม่สำเร็จ',
+          message: (err && err.message) || String(err)
+        });
+      }
+    });
+
+    updateSummary();
   });
 
-  btnReset.addEventListener('click', () => {
-    form.reset(); preview.innerHTML=''; msg.textContent='';
-    populateSubs(); // เคลียร์ chain
-  });
+  function updateSummary(){
+    const ws=document.querySelector('#wtStart').value, we=document.querySelector('#wtEnd').value;
+    const wtxt = (ws && we) ? `${ws} - ${we}` : (ws || we || '—');
+    document.querySelector('#sum_subject').textContent = document.querySelector('#subject').value || '—';
+    document.querySelector('#sum_wtime').textContent = wtxt;
+    document.querySelector('#sum_line').textContent = document.querySelector('#lineSel').value || '—';
+    document.querySelector('#sum_sub').textContent = document.querySelector('#subSel').value || '—';
+    document.querySelector('#sum_tool').textContent = document.querySelector('#toolSel').value || '—';
+    document.querySelector('#sum_machine').textContent = document.querySelector('#machineSel').value || '—';
+    document.querySelector('#sum_problem').textContent = document.querySelector('#problem').value || '—';
+    document.querySelector('#sum_action').textContent = document.querySelector('#action').value || '—';
+  }
+</script>
 
-  // เริ่มต้น
-  loadLookups().catch(e=>{
-    msg.textContent = 'โหลด lookup ไม่สำเร็จ: ' + e.message;
-    msg.className = 'err';
-  });
-  </script>
 </body>
 </html>
