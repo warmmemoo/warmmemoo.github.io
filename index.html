@@ -136,7 +136,7 @@
 
       <!-- 1) Purpose + Working time -->
       <div class="section card">
-        <h2>1) Heading (Purpose) &emsp;&emsp;&emsp;Working time</h2>
+        <h2>1) Heading (Purpose) &emsp;&emsp;&emsp;&emsp;Working time</h2>
         <div class="grid2">
           <div>
             <select id="subject" name="subject" required>
@@ -255,10 +255,6 @@
   </div>
 
 <script>
-  /* ====== ตั้งค่า API ของคุณ ====== */
-  const API_BASE = 'https://script.google.com/macros/s/AKfycbzwWhsJyolGUPmZ2hMU8JpiYCGHdWytd6KF-Q6ttV81P5wwhoBd2UB4zoIk6vQGDyknFQ/exec';
-  const API_KEY  = 'wwvGmIU9y7rotiTQY60iAGq'; // ต้องตรงกับ SIMPLE_KEY
-
   const $ = s => document.querySelector(s);
 
   /* ===== Modal ===== */
@@ -285,6 +281,7 @@
   const normStr = s => String(s||'').trim();
   const hasValue = (arr, val) => (arr||[]).some(x => normStr(x) === normStr(val));
 
+  // fillSelect: เพิ่มตัวเลือก '-- ไม่เลือก --' เมื่อต้องการ (allowNone=true)
   function fillSelect(id, items, ph, {allowNone=false, disabledWhenEmpty=true} = {}){
     const sel = document.getElementById(id);
     sel.innerHTML='';
@@ -307,7 +304,7 @@
     sel.disabled = false;
   }
 
-  function initLookupsFromAPI(res){
+  function initLookups(res){
     if (!res || !res.ok){
       alert('โหลดลิสต์ไม่สำเร็จ: ' + (res && res.message ? res.message : 'ไม่ทราบสาเหตุ'));
       fillSelect('lineSel', [], '— ไม่พบลิสต์ —');
@@ -323,7 +320,8 @@
         const sub=s.sub, tools=s.toolings||[];
         TOOLS_BY_PAIR[k2(line,sub)] = tools;
 
-        const mbt = s.machinesByTool || {};
+        // รวมเครื่องทุกคีย์ (รวมคีย์ว่าง '') และ map กลับสำหรับ tooling ที่มีชื่อ
+        const mbt = s.machinesByTool || {};   // { [toolName or '']: string[] }
         let union = [];
         Object.keys(mbt).forEach(tKey=>{
           const list = Array.isArray(mbt[tKey]) ? mbt[tKey] : [];
@@ -341,7 +339,9 @@
       });
     });
 
+    // โหลดรายการ line
     fillSelect('lineSel', LOOKUP.map(x=>x.line), '-- เลือก Production line --');
+    // เคลียร์/ปิด sub/tool/machine
     fillSelect('subSel', [], 'เลือก Production line ก่อน');
     fillSelect('toolSel', [], '— ไม่เลือก —', {allowNone:true, disabledWhenEmpty:true});
     fillSelect('machineSel', [], '— ไม่เลือก —', {allowNone:true, disabledWhenEmpty:true});
@@ -398,13 +398,7 @@
 
   /* ===== DOM Ready ===== */
   document.addEventListener('DOMContentLoaded', ()=>{
-    // โหลด lookups ผ่าน API (แทน google.script.run)
-    fetch(`${API_BASE}?a=lookups&k=${encodeURIComponent(API_KEY)}`)
-      .then(r=>r.json())
-      .then(initLookupsFromAPI)
-      .catch(err=>{
-        alert('โหลดลิสต์ไม่สำเร็จ: ' + (err && err.message ? err.message : String(err)));
-      });
+    google.script.run.withSuccessHandler(initLookups).getLookups();
 
     const lineSel=$('#lineSel'), subSel=$('#subSel'), toolSel=$('#toolSel'), machineSel=$('#machineSel');
 
@@ -511,7 +505,7 @@
       updateSummary();
     }
 
-    form.addEventListener('submit', async (e)=>{
+    form.addEventListener('submit', (e)=>{
       e.preventDefault();
 
       const ws=$('#wtStart').value, we=$('#wtEnd').value;
@@ -540,49 +534,46 @@
         });
       }
 
-      try{
-        const res = await fetch(`${API_BASE}?a=save&k=${encodeURIComponent(API_KEY)}`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'text/plain' }, // เลี่ยง preflight
-          body: JSON.stringify(payload)
-        });
-        const j = await res.json();
-        setLoading(false);
-        if (j && j.ok){
-          showModal({ ok: true });
-          form.reset();
-          hardResetUI();
-        } else {
+      google.script.run
+        .withSuccessHandler((res)=>{
+          setLoading(false);
+          if (res && res.ok){
+            showModal({ ok: true });
+            form.reset();
+            hardResetUI();
+          } else {
+            showModal({
+              ok: false,
+              title: '❌ บันทึกไม่สำเร็จ',
+              message: (res && res.message) || 'กรุณาลองใหม่อีกครั้ง'
+            });
+          }
+        })
+        .withFailureHandler((err)=>{
+          setLoading(false);
           showModal({
             ok: false,
             title: '❌ บันทึกไม่สำเร็จ',
-            message: (j && (j.error||j.message)) || 'กรุณาลองใหม่อีกครั้ง'
+            message: (err && err.message) || String(err)
           });
-        }
-      } catch(err){
-        setLoading(false);
-        showModal({
-          ok: false,
-          title: '❌ บันทึกไม่สำเร็จ',
-          message: (err && err.message) || String(err)
-        });
-      }
+        })
+        .saveReport(payload);
     });
 
     updateSummary();
   });
 
   function updateSummary(){
-    const ws=document.querySelector('#wtStart').value, we=document.querySelector('#wtEnd').value;
+    const ws=$('#wtStart').value, we=$('#wtEnd').value;
     const wtxt = (ws && we) ? `${ws} - ${we}` : (ws || we || '—');
-    document.querySelector('#sum_subject').textContent = document.querySelector('#subject').value || '—';
-    document.querySelector('#sum_wtime').textContent = wtxt;
-    document.querySelector('#sum_line').textContent = document.querySelector('#lineSel').value || '—';
-    document.querySelector('#sum_sub').textContent = document.querySelector('#subSel').value || '—';
-    document.querySelector('#sum_tool').textContent = document.querySelector('#toolSel').value || '—';
-    document.querySelector('#sum_machine').textContent = document.querySelector('#machineSel').value || '—';
-    document.querySelector('#sum_problem').textContent = document.querySelector('#problem').value || '—';
-    document.querySelector('#sum_action').textContent = document.querySelector('#action').value || '—';
+    $('#sum_subject').textContent = $('#subject').value || '—';
+    $('#sum_wtime').textContent = wtxt;
+    $('#sum_line').textContent = $('#lineSel').value || '—';
+    $('#sum_sub').textContent = $('#subSel').value || '—';
+    $('#sum_tool').textContent = $('#toolSel').value || '—';
+    $('#sum_machine').textContent = $('#machineSel').value || '—';
+    $('#sum_problem').textContent = $('#problem').value || '—';
+    $('#sum_action').textContent = $('#action').value || '—';
   }
 </script>
 
